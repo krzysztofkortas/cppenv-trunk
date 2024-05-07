@@ -1,9 +1,9 @@
 set TAG=20240118
 
-docker manifest create happycerberus/devenv-trunk:latest --amend happycerberus/devenv-trunk:latest-amd64
-docker manifest annotate happycerberus/devenv-trunk:latest happycerberus/devenv-trunk:latest-amd64 --arch amd64
-docker manifest push happycerberus/devenv-trunk:latest
+docker manifest create krzysztofkortas/devenv-trunk:latest --amend krzysztofkortas/devenv-trunk:latest-amd64
+docker manifest annotate krzysztofkortas/devenv-trunk:latest krzysztofkortas/devenv-trunk:latest-amd64 --arch amd64
+docker manifest push krzysztofkortas/devenv-trunk:latest
 
-docker manifest create happycerberus/devenv-trunk:%TAG% --amend happycerberus/devenv-trunk:%TAG%-amd64
-docker manifest annotate happycerberus/devenv-trunk:%TAG% happycerberus/devenv-trunk:%TAG%-amd64 --arch amd64
-docker manifest push happycerberus/devenv-trunk:%TAG%
+docker manifest create krzysztofkortas/devenv-trunk:%TAG% --amend krzysztofkortas/devenv-trunk:%TAG%-amd64
+docker manifest annotate krzysztofkortas/devenv-trunk:%TAG% krzysztofkortas/devenv-trunk:%TAG%-amd64 --arch amd64
+docker manifest push krzysztofkortas/devenv-trunk:%TAG%
