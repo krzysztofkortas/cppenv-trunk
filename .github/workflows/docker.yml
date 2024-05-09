@@ -8,7 +8,7 @@ on:
 
 jobs:
   build_and_push_docker_image:
-    name: Build and push docker image to DockerHub and Github registry
+    name: Build and push docker image to DockerHub
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
