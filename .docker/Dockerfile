@@ -1,7 +1,7 @@
 FROM buildpack-deps:bookworm
 ENV GCC_VERSION 15.0.0
 ARG TARGETARCH
-ENV GCC_GIT=40a990c8b512fd25bd7d7b45aa509e1880d77209
+ENV GCC_GIT=5ebfaf2d4994c124ce81aa0abd7eaa1529644749
 
 # Building GCC from sources
 RUN set -ex; \
@@ -111,12 +111,12 @@ RUN set -ex &&\
     apt-get install -y --no-install-recommends lsb-release  wget software-properties-common gnupg &&\
     curl -fL https://apt.llvm.org/llvm.sh -o llvm.sh &&\
     chmod +x llvm.sh &&\
-    ./llvm.sh 19 all || echo ""
+    ./llvm.sh 20 all || echo ""
 
 # For whatever reason we have to manually update and run the llvm script again.
 RUN set -ex &&\
     apt-get update &&\
-    ./llvm.sh 19 all
+    ./llvm.sh 20 all
 
 # Make GDB avoid security checks and autoload the python pretty-printing
 RUN mkdir -p /root/.config/gdb &&\
