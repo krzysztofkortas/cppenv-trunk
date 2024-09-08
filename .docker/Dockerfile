@@ -82,15 +82,16 @@ RUN set -ex &&\
     apt-get update &&\
     apt-get install -y ninja-build
 
+# GDB
 ENV CC=/usr/local/bin/gcc
 RUN set -ex &&\
     apt-get update &&\
     apt-get install -y python3-dev &&\
-    curl -fL https://ftp.gnu.org/gnu/gdb/gdb-13.2.tar.gz -o gdb-13.2.tar.gz && \
-	tar -xf gdb-13.2.tar.gz -C /tmp && rm gdb-13.2.tar.gz && \
-	cd /tmp/gdb-13.2 && \
+    curl -fL https://ftp.gnu.org/gnu/gdb/gdb-15.1.tar.gz -o gdb-15.1.tar.gz && \
+	tar -xf gdb-15.1.tar.gz -C /tmp && rm gdb-15.1.tar.gz && \
+	cd /tmp/gdb-15.1 && \
 	./configure --prefix=/usr/local --enable-tui --with-python && make && make install && \
-	rm -rf /tmp/gdb-13.2
+	rm -rf /tmp/gdb-15.1
 
 # LLVM
 RUN set -ex &&\
