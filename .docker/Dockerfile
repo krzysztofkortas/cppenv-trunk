@@ -1,7 +1,9 @@
 FROM buildpack-deps:bookworm
-ENV GCC_VERSION=15.0.0
-ARG TARGETARCH
-ENV GCC_GIT=5326306e7d9d36eccc2c2f02e1357818625f057b
+
+ARG GCC_GIT=5326306e7d9d36eccc2c2f02e1357818625f057b
+ARG USERNAME=dev
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
 
 # Building GCC from sources
 RUN set -ex; \
@@ -93,6 +95,10 @@ RUN set -ex &&\
 	./configure --prefix=/usr/local --enable-tui --with-python && make && make install && \
 	rm -rf /tmp/gdb-15.1
 
+# Make GDB avoid security checks and autoload the python pretty-printing
+RUN mkdir -p /root/.config/gdb &&\
+    echo "set auto-load safe-path /" >/root/.config/gdb/gdbinit
+
 # LLVM
 RUN set -ex &&\
     apt-get update &&\
@@ -106,6 +112,33 @@ RUN set -ex &&\
     apt-get update &&\
     ./llvm.sh 20 all
 
-# Make GDB avoid security checks and autoload the python pretty-printing
-RUN mkdir -p /root/.config/gdb &&\
-    echo "set auto-load safe-path /" >/root/.config/gdb/gdbinit
+# cmake-format
+RUN set -ex; \
+    apt-get update; \
+    apt-get install -y cmake-format
+
+# zip - needed by vcpkg 
+RUN set -ex; \
+    apt-get update; \
+    apt-get install -y zip;
+
+# Create the user
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && chown -R $USERNAME /home/$USERNAME \
+    # Add sudo support.
+    && apt-get update \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+USER $USERNAME
+
+# vcpkg
+RUN set -ex;\
+    cd;\
+    git clone https://github.com/microsoft/vcpkg.git;\
+    ./vcpkg/bootstrap-vcpkg.sh;
+
+ENV VCPKG_ROOT=/home/$USERNAME/vcpkg
+ENV PATH="${VCPKG_ROOT}:${PATH}"
