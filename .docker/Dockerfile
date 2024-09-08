@@ -82,7 +82,6 @@ RUN set -ex &&\
     apt-get update &&\
     apt-get install -y ninja-build
 
-
 ENV CC=/usr/local/bin/gcc
 RUN set -ex &&\
     apt-get update &&\
@@ -92,18 +91,6 @@ RUN set -ex &&\
 	cd /tmp/gdb-13.2 && \
 	./configure --prefix=/usr/local --enable-tui --with-python && make && make install && \
 	rm -rf /tmp/gdb-13.2
-
-# Go (required for bazel)
-RUN curl -fL https://go.dev/dl/go1.21.0.linux-${TARGETARCH}.tar.gz -o go1.21.0.linux-${TARGETARCH}.tar.gz && \
-    tar -xf go1.21.0.linux-${TARGETARCH}.tar.gz -C /usr/local && \
-    rm go1.21.0.linux-${TARGETARCH}.tar.gz
-
-# Bazel
-ENV PATH="${PATH}:/usr/local/go/bin"
-RUN set -ex && \
-    GOBIN=/usr/local/go/bin go install github.com/bazelbuild/bazelisk@latest && \
-    GOBIN=/usr/local/go/bin go install github.com/bazelbuild/buildtools/buildifier@latest && \
-    ln -s /usr/local/go/bin/bazelisk /usr/local/bin/bazel
 
 # LLVM
 RUN set -ex &&\
