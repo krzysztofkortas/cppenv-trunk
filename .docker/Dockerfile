@@ -22,7 +22,7 @@ RUN set -eux; \
         wget \
         lsb-release \
         software-properties-common \
-        python3-pip; \
+        python3-pip \
         cmake-format; \
     rm -rf /var/lib/apt/lists/*
 
