@@ -23,10 +23,8 @@ RUN set -eux; \
         lsb-release \
         software-properties-common \
         python3-pip; \
+        cmake-format; \
     rm -rf /var/lib/apt/lists/*
-
-# Install cmake-format via pip
-RUN pip3 install cmake-format
 
 # Build GCC from source
 RUN set -eux; \
