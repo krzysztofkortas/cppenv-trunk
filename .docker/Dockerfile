@@ -1,74 +1,45 @@
-FROM buildpack-deps:bookworm
+FROM buildpack-deps:bookworm AS build-env
 
 ARG GCC_GIT=bfb9105ffbff952599ec949cee1e18ddc1f849ba
+ARG LLVM_VERSION=20
+ARG GDB_VERSION=15.1
 ARG USERNAME=dev
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
-# Building GCC from sources
-RUN set -ex; \
-    savedAptMark="$(apt-mark showmanual)"; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends dpkg-dev flex gnupg; \
-    rm -r /var/lib/apt/lists/*; \
+# Install dependencies
+RUN set -eux; \
+    apt-get update && apt-get install -y --no-install-recommends \
+        abigail-tools \
+        dpkg-dev \
+        flex \
+        gnupg \
+        python3-dev \
+        libgmp-dev \
+        unzip \
+        ninja-build \
+        zip \
+        wget \
+        lsb-release \
+        software-properties-common \
+        python3-pip; \
+    rm -rf /var/lib/apt/lists/*
+
+# Install cmake-format via pip
+RUN pip3 install cmake-format
+
+# Build GCC from source
+RUN set -eux; \
     curl -fL https://github.com/gcc-mirror/gcc/archive/$GCC_GIT.zip -o gcc.zip; \
-    mkdir -p /usr/src; \
-    unzip gcc.zip -d /usr/src; \
+    unzip gcc.zip -d /usr/src && rm gcc.zip; \
     mv /usr/src/gcc-$GCC_GIT /usr/src/gcc; \
-    rm gcc.zip; \
     cd /usr/src/gcc; \
     ./contrib/download_prerequisites; \
-    { rm *.tar.* || true; }; \
-    for f in config.guess config.sub; do \
-        wget -O "$f" "https://git.savannah.gnu.org/cgit/config.git/plain/$f?id=7d3d27baf8107b630586c962c057e22149653deb"; \
-        find -mindepth 2 -name "$f" -exec cp -v "$f" '{}' ';'; \
-    done; \
-    dir="$(mktemp -d)"; \
-    cd "$dir"; \
-    extraConfigureArgs=''; \
-    dpkgArch="$(dpkg --print-architecture)"; \
-    case "$dpkgArch" in \
-		armel) \
-			extraConfigureArgs="$extraConfigureArgs --with-arch=armv5te --with-float=soft" \
-			;; \
-		armhf) \
-			extraConfigureArgs="$extraConfigureArgs --with-arch=armv7-a+fp --with-float=hard --with-mode=thumb" \
-			;; \
-		\
-		i386) \
-			extraConfigureArgs="$extraConfigureArgs --with-arch-32=i686"; \
-			;; \
-	esac; \
-    gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)"; \
-    /usr/src/gcc/configure --build="$gnuArch" --disable-multilib --enable-languages=c,c++ $extraConfigureArgs; \
-    make -j "$(nproc)"; \
+    mkdir -p build && cd build; \
+    ../configure --disable-multilib --enable-languages=c,c++ --build="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)"; \
+    make -j"$(nproc)"; \
     make install-strip; \
-    cd ..; \
-    rm -rf "$dir" /usr/src/gcc; \
-    apt-mark auto '.*' > /dev/null; \
-    [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
-    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false
-
-# gcc installs .so files in /usr/local/lib64 (and /usr/local/lib)...
-RUN set -ex; \
-# this filename needs to sort higher than all the architecture filenames ("aarch64-...", "armeabi...", etc)
-	{ echo '/usr/local/lib64'; echo '/usr/local/lib'; } > /etc/ld.so.conf.d/000-local-lib.conf; \
-    ldconfig -v;
-    # \
-    # the libc created by gcc might be too old for a newer Debian
-	# check that the Debian libstdc++ doesn't have newer requirements than the gcc one
-	#bash -Eeuo pipefail -xc ' \
-	#	deb="$(strings /usr/lib/*/libstdc++.so* | grep "^GLIBC" | sort -u)"; \
-#		gcc="$(strings /usr/local/lib*/libstdc++.so | grep "^GLIBC" | sort -u)"; \
-#		diff="$(comm -23 <(cat <<<"$deb") <(cat <<<"$gcc"))"; \
-#		test -z "$diff"; \
-	#'
-
-# ensure that alternatives are pointing to the new compiler and that old one is no longer used
-RUN set -ex; \
-	dpkg-divert --divert /usr/bin/gcc.orig --rename /usr/bin/gcc; \
-	dpkg-divert --divert /usr/bin/g++.orig --rename /usr/bin/g++; \
-	update-alternatives --install /usr/bin/cc cc /usr/local/bin/gcc 999
+    cd / && rm -rf /usr/src/gcc
 
 # Building CMake from sources
 RUN set -ex; \
@@ -79,66 +50,57 @@ RUN set -ex; \
     ./bootstrap && make && make install; \
     rm -rf /usr/src/cmake-master
 
-# Ninja build (required for C++20 modules with CMake)
-RUN set -ex &&\
-    apt-get update &&\
-    apt-get install -y ninja-build
+# Install GDB from source
+RUN set -eux; \
+    curl -fL https://ftp.gnu.org/gnu/gdb/gdb-$GDB_VERSION.tar.gz -o gdb.tar.gz; \
+    tar -xf gdb.tar.gz -C /usr/src && rm gdb.tar.gz; \
+    cd /usr/src/gdb-$GDB_VERSION; \
+    ./configure --prefix=/usr/local --enable-tui --with-python; \
+    make -j"$(nproc)" && make install; \
+    cd / && rm -rf /usr/src/gdb-$GDB_VERSION
 
-# GDB
-ENV CC=/usr/local/bin/gcc
-RUN set -ex &&\
-    apt-get update &&\
-    apt-get install -y python3-dev &&\
-    curl -fL https://ftp.gnu.org/gnu/gdb/gdb-15.1.tar.gz -o gdb-15.1.tar.gz && \
-	tar -xf gdb-15.1.tar.gz -C /tmp && rm gdb-15.1.tar.gz && \
-	cd /tmp/gdb-15.1 && \
-	./configure --prefix=/usr/local --enable-tui --with-python && make && make install && \
-	rm -rf /tmp/gdb-15.1
+# Install LLVM (this assumes that llvm.sh will install based on LLVM_VERSION)
+RUN set -eux; \
+    curl -fL https://apt.llvm.org/llvm.sh -o llvm.sh; \
+    chmod +x llvm.sh; \
+    ./llvm.sh $LLVM_VERSION all || echo ""; \
+    rm llvm.sh
 
-# Make GDB avoid security checks and autoload the python pretty-printing
-RUN mkdir -p /root/.config/gdb &&\
-    echo "set auto-load safe-path /" >/root/.config/gdb/gdbinit
+# Install vcpkg
+RUN git clone https://github.com/microsoft/vcpkg.git /home/$USERNAME/vcpkg; \
+    /home/$USERNAME/vcpkg/bootstrap-vcpkg.sh;
 
-# LLVM
-RUN set -ex &&\
-    apt-get update &&\
-    apt-get install -y --no-install-recommends lsb-release  wget software-properties-common gnupg &&\
-    curl -fL https://apt.llvm.org/llvm.sh -o llvm.sh &&\
-    chmod +x llvm.sh &&\
-    ./llvm.sh 20 all || echo ""
+# Final image
+FROM buildpack-deps:bookworm
 
-# For whatever reason we have to manually update and run the llvm script again.
-RUN set -ex &&\
-    apt-get update &&\
-    ./llvm.sh 20 all
+ARG USERNAME=dev
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
 
-# cmake-format
-RUN set -ex; \
-    apt-get update; \
-    apt-get install -y cmake-format
+# Copy built tools from the build environment
+COPY --from=build-env /usr/local /usr/local
+COPY --from=build-env /home/$USERNAME/vcpkg /home/$USERNAME/vcpkg
+COPY --from=build-env /usr/local/bin/cmake-format /usr/local/bin/cmake-format
 
-# zip - needed by vcpkg 
-RUN set -ex; \
-    apt-get update; \
-    apt-get install -y zip;
+# Ensure GDB avoids security checks and autoloads Python pretty-printing
+RUN mkdir -p /home/$USERNAME/.config/gdb; \
+    echo "set auto-load safe-path /" > /home/$USERNAME/.config/gdb/gdbinit
 
-# Create the user
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
-    && chown -R $USERNAME /home/$USERNAME \
-    # Add sudo support.
-    && apt-get update \
-    && apt-get install -y sudo \
-    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
-    && chmod 0440 /etc/sudoers.d/$USERNAME
+# Create user with sudo privileges
+RUN set -eux; \
+    groupadd --gid $USER_GID $USERNAME; \
+    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME; \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME; \
+    chmod 0440 /etc/sudoers.d/$USERNAME
 
 USER $USERNAME
 
-# vcpkg
-RUN set -ex;\
-    cd;\
-    git clone https://github.com/microsoft/vcpkg.git;\
-    ./vcpkg/bootstrap-vcpkg.sh;
-
+# Set environment variables
+ENV CC=/usr/local/bin/gcc
 ENV VCPKG_ROOT=/home/$USERNAME/vcpkg
 ENV PATH="${VCPKG_ROOT}:${PATH}"
+
+# Clean up unnecessary packages and files
+RUN set -eux; \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+    rm -rf /var/lib/apt/lists/*
