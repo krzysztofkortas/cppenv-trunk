@@ -16,6 +16,7 @@ RUN set -eux; \
         gnupg \
         python3-dev \
         libgmp-dev \
+        libmpfr-dev \
         unzip \
         ninja-build \
         zip \
