@@ -11,20 +11,13 @@ ARG USER_GID=$USER_UID
 RUN set -eux; \
     apt-get update && apt-get install -y --no-install-recommends \
         abigail-tools \
-        dpkg-dev \
         flex \
-        gnupg \
-        python3-dev \
-        libgmp-dev \
         libmpfr-dev \
-        unzip \
-        ninja-build \
-        zip \
-        wget \
         lsb-release \
+        ninja-build \
+        python3-dev \
         software-properties-common \
-        python3-pip \
-        cmake-format; \
+        zip; \
     rm -rf /var/lib/apt/lists/*
 
 # Build GCC from source
@@ -102,5 +95,5 @@ ENV PATH="${VCPKG_ROOT}:${PATH}"
 
 # Clean up unnecessary packages and files
 RUN set -eux; \
-    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-    rm -rf /var/lib/apt/lists/*
+    sudo apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+    sudo rm -rf /var/lib/apt/lists/*
