@@ -79,7 +79,6 @@ ARG USER_GID=$USER_UID
 # Copy built tools from the build environment
 COPY --from=build-env /usr/local /usr/local
 COPY --from=build-env /home/$USERNAME/vcpkg /home/$USERNAME/vcpkg
-COPY --from=build-env /usr/local/bin/cmake-format /usr/local/bin/cmake-format
 
 # Ensure GDB avoids security checks and autoloads Python pretty-printing
 RUN mkdir -p /home/$USERNAME/.config/gdb; \
