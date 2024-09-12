@@ -76,6 +76,15 @@ ARG USERNAME=dev
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
+# Create user with sudo privileges
+RUN set -eux; \
+    groupadd --gid $USER_GID $USERNAME; \
+    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME; \
+    apt-get update; \
+    apt-get install -y sudo; \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME; \
+    chmod 0440 /etc/sudoers.d/$USERNAME
+
 # Copy built tools from the build environment
 COPY --from=build-env /usr/local /usr/local
 COPY --from=build-env /home/$USERNAME/vcpkg /home/$USERNAME/vcpkg
@@ -83,13 +92,6 @@ COPY --from=build-env /home/$USERNAME/vcpkg /home/$USERNAME/vcpkg
 # Ensure GDB avoids security checks and autoloads Python pretty-printing
 RUN mkdir -p /home/$USERNAME/.config/gdb; \
     echo "set auto-load safe-path /" > /home/$USERNAME/.config/gdb/gdbinit
-
-# Create user with sudo privileges
-RUN set -eux; \
-    groupadd --gid $USER_GID $USERNAME; \
-    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME; \
-    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME; \
-    chmod 0440 /etc/sudoers.d/$USERNAME
 
 USER $USERNAME
 
