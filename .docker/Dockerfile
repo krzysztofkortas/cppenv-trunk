@@ -1,4 +1,4 @@
-FROM buildpack-deps:bookworm AS build-env
+FROM buildpack-deps:bookworm
 
 ARG GCC_GIT=bfb9105ffbff952599ec949cee1e18ddc1f849ba
 ARG LLVM_VERSION=20
@@ -41,6 +41,24 @@ RUN set -eux; \
     make -j"$(nproc)"; \
     make install-strip; \
     cd / && rm -rf /usr/src/gcc
+
+# gcc installs .so files in /usr/local/lib64 (and /usr/local/lib)...
+RUN set -ex; \
+# this filename needs to sort higher than all the architecture filenames ("aarch64-...", "armeabi...", etc)
+	{ echo '/usr/local/lib64'; echo '/usr/local/lib'; } > /etc/ld.so.conf.d/000-local-lib.conf; \
+	ldconfig -v; \
+	# the libc created by gcc might be too old for a newer Debian
+	# check that the Debian libstdc++ doesn't have newer requirements than the gcc one
+	deb="$(readlink -ve /usr/lib/*/libstdc++.so* | head -1)"; \
+	gcc="$(readlink -ve /usr/local/lib*/libstdc++.so | head -1)"; \
+# using LD_PRELOAD to make sure "abidiff" itself doesn't fail with the exact error we're trying to test for 😂😭
+	LD_PRELOAD="$deb" abidiff --no-added-syms "$deb" "$gcc"
+
+# ensure that alternatives are pointing to the new compiler and that old one is no longer used
+RUN set -ex; \
+	dpkg-divert --divert /usr/bin/gcc.orig --rename /usr/bin/gcc; \
+	dpkg-divert --divert /usr/bin/g++.orig --rename /usr/bin/g++; \
+	update-alternatives --install /usr/bin/cc cc /usr/local/bin/gcc 999
 
 # Building CMake from sources
 RUN set -ex; \
