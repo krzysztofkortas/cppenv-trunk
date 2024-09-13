@@ -11,6 +11,7 @@ ARG USER_GID=$USER_UID
 RUN set -eux; \
     apt-get update && apt-get install -y --no-install-recommends \
         abigail-tools \
+        cmake-format \
         flex \
         libmpfr-dev \
         lsb-release \
@@ -19,6 +20,13 @@ RUN set -eux; \
         software-properties-common \
         zip; \
     rm -rf /var/lib/apt/lists/*
+
+# Create user with sudo privileges
+RUN set -eux; \
+    groupadd --gid $USER_GID $USERNAME; \
+    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME; \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME; \
+    chmod 0440 /etc/sudoers.d/$USERNAME
 
 # Build GCC from source
 RUN set -eux; \
@@ -39,17 +47,26 @@ RUN set -ex; \
     unzip cmake.zip -d /usr/src; \
     rm cmake.zip; \
     cd /usr/src/cmake-master; \
-    ./bootstrap && make && make install; \
+    ./bootstrap; \
+    make; \
+    make install; \
     rm -rf /usr/src/cmake-master
 
 # Install GDB from source
 RUN set -eux; \
     curl -fL https://ftp.gnu.org/gnu/gdb/gdb-$GDB_VERSION.tar.gz -o gdb.tar.gz; \
-    tar -xf gdb.tar.gz -C /usr/src && rm gdb.tar.gz; \
+    tar -xf gdb.tar.gz -C /usr/src; \
+    rm gdb.tar.gz; \
     cd /usr/src/gdb-$GDB_VERSION; \
     ./configure --prefix=/usr/local --enable-tui --with-python; \
-    make -j"$(nproc)" && make install; \
-    cd / && rm -rf /usr/src/gdb-$GDB_VERSION
+    make -j"$(nproc)"; \
+    make install; \
+    rm -rf /usr/src/gdb-$GDB_VERSION
+
+# Ensure GDB avoids security checks and autoloads Python pretty-printing
+RUN set -eux; \
+    mkdir -p /home/$USERNAME/.config/gdb; \
+    echo "set auto-load safe-path /" > /home/$USERNAME/.config/gdb/gdbinit
 
 # Install LLVM (this assumes that llvm.sh will install based on LLVM_VERSION)
 RUN set -eux; \
@@ -58,42 +75,18 @@ RUN set -eux; \
     ./llvm.sh $LLVM_VERSION all || echo ""; \
     rm llvm.sh
 
-# Install vcpkg
-RUN git clone https://github.com/microsoft/vcpkg.git /home/$USERNAME/vcpkg; \
-    /home/$USERNAME/vcpkg/bootstrap-vcpkg.sh;
-
-# Final image
-FROM buildpack-deps:bookworm
-
-ARG USERNAME=dev
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
-# Create user with sudo privileges
-RUN set -eux; \
-    groupadd --gid $USER_GID $USERNAME; \
-    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME; \
-    apt-get update; \
-    apt-get install -y sudo; \
-    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME; \
-    chmod 0440 /etc/sudoers.d/$USERNAME
-
-# Copy built tools from the build environment
-COPY --from=build-env /usr/local /usr/local
-COPY --from=build-env /home/$USERNAME/vcpkg /home/$USERNAME/vcpkg
-
-# Ensure GDB avoids security checks and autoloads Python pretty-printing
-RUN mkdir -p /home/$USERNAME/.config/gdb; \
-    echo "set auto-load safe-path /" > /home/$USERNAME/.config/gdb/gdbinit
-
 USER $USERNAME
 
+# Install vcpkg
+RUN set -eux; \
+    git clone https://github.com/microsoft/vcpkg.git /home/$USERNAME/vcpkg; \
+    /home/$USERNAME/vcpkg/bootstrap-vcpkg.sh;
+
 # Set environment variables
-ENV CC=/usr/local/bin/gcc
 ENV VCPKG_ROOT=/home/$USERNAME/vcpkg
 ENV PATH="${VCPKG_ROOT}:${PATH}"
 
 # Clean up unnecessary packages and files
-RUN set -eux; \
-    sudo apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-    sudo rm -rf /var/lib/apt/lists/*
+# RUN set -eux; \
+#     sudo apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+#     sudo rm -rf /var/lib/apt/lists/*
