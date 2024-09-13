@@ -9,7 +9,8 @@ ARG USER_GID=$USER_UID
 
 # Install dependencies
 RUN set -eux; \
-    apt-get update && apt-get install -y --no-install-recommends \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
         abigail-tools \
         cmake-format \
         flex \
@@ -32,15 +33,17 @@ RUN set -eux; \
 # Build GCC from source
 RUN set -eux; \
     curl -fL https://github.com/gcc-mirror/gcc/archive/$GCC_GIT.zip -o gcc.zip; \
-    unzip gcc.zip -d /usr/src && rm gcc.zip; \
+    unzip gcc.zip -d /usr/src; \
+    rm gcc.zip; \
     mv /usr/src/gcc-$GCC_GIT /usr/src/gcc; \
     cd /usr/src/gcc; \
     ./contrib/download_prerequisites; \
-    mkdir -p build && cd build; \
+    mkdir -p build; \
+    cd build; \
     ../configure --disable-multilib --enable-languages=c,c++ --build="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)"; \
     make -j"$(nproc)"; \
     make install-strip; \
-    cd / && rm -rf /usr/src/gcc
+    rm -rf /usr/src/gcc
 
 # gcc installs .so files in /usr/local/lib64 (and /usr/local/lib)...
 RUN set -ex; \
@@ -104,8 +107,3 @@ RUN set -eux; \
 # Set environment variables
 ENV VCPKG_ROOT=/home/$USERNAME/vcpkg
 ENV PATH="${VCPKG_ROOT}:${PATH}"
-
-# Clean up unnecessary packages and files
-# RUN set -eux; \
-#     sudo apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-#     sudo rm -rf /var/lib/apt/lists/*
