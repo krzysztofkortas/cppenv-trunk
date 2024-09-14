@@ -41,5 +41,5 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            krzysztofkortas/devenv-trunk:latest
-            krzysztofkortas/devenv-trunk:${{ steps.previoustag.outputs.tag }}
+            krzysztofkortas/cppenv-trunk:latest
+            krzysztofkortas/cppenv-trunk:${{ steps.previoustag.outputs.tag }}
