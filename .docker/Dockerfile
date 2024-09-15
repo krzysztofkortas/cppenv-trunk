@@ -15,6 +15,7 @@ RUN set -eux; \
         cmake-format \
         flex \
         libmpfr-dev \
+        lsb-release \
         ninja-build \
         python3-dev \
         sudo \
@@ -92,7 +93,7 @@ RUN set -eux; \
 RUN set -eux; \
     curl -fL https://apt.llvm.org/llvm.sh -o llvm.sh; \
     chmod +x llvm.sh; \
-    ./llvm.sh $LLVM_VERSION all || echo ""; \
+    ./llvm.sh $LLVM_VERSION all; \
     rm llvm.sh
 
 USER $USERNAME
