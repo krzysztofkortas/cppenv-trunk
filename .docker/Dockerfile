@@ -18,6 +18,7 @@ RUN set -eux; \
         lsb-release \
         ninja-build \
         python3-dev \
+        software-properties-common \
         sudo \
         zip; \
     rm -rf /var/lib/apt/lists/*
