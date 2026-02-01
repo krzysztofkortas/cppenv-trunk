@@ -1,4 +1,4 @@
-FROM buildpack-deps:bookworm
+FROM buildpack-deps:trixie
 
 ARG GCC_GIT=9839ae8f24180d20d8aea5de60a94f41dbfdcda8
 ARG LLVM_VERSION=22
