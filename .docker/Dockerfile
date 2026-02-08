@@ -7,6 +7,9 @@ ARG USERNAME=dev
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
+# Copy patches
+COPY patches/ /tmp/patches/
+
 # Install dependencies
 RUN set -eux; \
     apt-get update; \
@@ -68,6 +71,7 @@ RUN set -ex; \
     unzip cmake.zip -d /usr/src; \
     rm cmake.zip; \
     cd /usr/src/cmake-master; \
+    patch Modules/Compiler/Clang-CXX-CXXImportStd.cmake < /tmp/patches/cmake.patch; \
     ./bootstrap; \
     make; \
     make install; \
@@ -96,7 +100,7 @@ RUN sed -i 's/\(sha1\.second_preimage_resistance =\).*/\1 9999-01-01/' /usr/shar
 RUN set -eux; \
     curl -fL https://apt.llvm.org/llvm.sh -o llvm.sh; \
     # Add support for clang 23
-    sed -i '/LLVM_VERSION_PATTERNS\[22\]=""/c\LLVM_VERSION_PATTERNS[22]="-22"\nLLVM_VERSION_PATTERNS[23]=""' llvm.sh; \
+    patch llvm.sh < /tmp/patches/llvm.sh.patch; \
     chmod +x llvm.sh; \
     ./llvm.sh $LLVM_VERSION all; \
     rm llvm.sh
