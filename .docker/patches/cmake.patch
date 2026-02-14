@@ -3,7 +3,7 @@
 @@ -9,10 +9,12 @@
    endif ()
  
-   if (NOT DEFINED CMAKE_CXX_STDLIB_MODULES_JSON)
+   if (NOT CMAKE_CXX_STDLIB_MODULES_JSON)
 +    separate_arguments(_cxx_flags_list NATIVE_COMMAND "${CMAKE_CXX_FLAGS}")
      execute_process(
        COMMAND
