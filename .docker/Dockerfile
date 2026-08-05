@@ -93,9 +93,6 @@ RUN set -eux; \
     mkdir -p /home/$USERNAME/.config/gdb; \
     echo "set auto-load safe-path /" > /home/$USERNAME/.config/gdb/gdbinit
 
-# TODO: remove once https://github.com/llvm/llvm-project/issues/153385 is resolved
-RUN sed -i 's/\(sha1\.second_preimage_resistance =\).*/\1 9999-01-01/' /usr/share/apt/default-sequoia.config
-
 # Install LLVM (this assumes that llvm.sh will install based on LLVM_VERSION)
 RUN set -eux; \
     curl -fL https://apt.llvm.org/llvm.sh -o llvm.sh; \
