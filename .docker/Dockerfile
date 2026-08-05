@@ -71,7 +71,6 @@ RUN set -ex; \
     unzip cmake.zip -d /usr/src; \
     rm cmake.zip; \
     cd /usr/src/cmake-master; \
-    patch Modules/Compiler/Clang-CXX-CXXImportStd.cmake < /tmp/patches/cmake.patch; \
     ./bootstrap; \
     make; \
     make install; \
