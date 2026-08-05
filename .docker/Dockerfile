@@ -1,8 +1,8 @@
 FROM buildpack-deps:trixie
 
-ARG GCC_GIT=7f4476239b1f8337a88844fb6dd98a9b1906c1d7
-ARG LLVM_VERSION=23
-ARG GDB_VERSION=17.1
+ARG GCC_GIT=298071eb7e88b01adc6a88f9eba797edaedec170
+ARG LLVM_VERSION=24
+ARG GDB_VERSION=17.2
 ARG USERNAME=dev
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -99,7 +99,7 @@ RUN sed -i 's/\(sha1\.second_preimage_resistance =\).*/\1 9999-01-01/' /usr/shar
 # Install LLVM (this assumes that llvm.sh will install based on LLVM_VERSION)
 RUN set -eux; \
     curl -fL https://apt.llvm.org/llvm.sh -o llvm.sh; \
-    # Add support for clang 23
+    # Add support for clang 24 (this patch is temporary and should be removed once llvm.sh supports clang 24 natively)
     patch llvm.sh < /tmp/patches/llvm.sh.patch; \
     chmod +x llvm.sh; \
     ./llvm.sh $LLVM_VERSION all; \
