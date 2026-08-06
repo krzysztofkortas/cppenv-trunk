@@ -2,10 +2,10 @@
 
 Docker image with bleeding edge C++ development environment:
 
-- GCC 16 (trunk)
-- Clang 23 (trunk)
+- GCC 17 (trunk)
+- Clang 24 (trunk)
 - CMake trunk
-- GDB 17.1
+- GDB 17.2
 - Ninja
 - cmake-format
 - vcpkg trunk

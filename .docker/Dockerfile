@@ -1,6 +1,6 @@
 FROM buildpack-deps:trixie
 
-ARG GCC_GIT=298071eb7e88b01adc6a88f9eba797edaedec170
+ARG GCC_GIT=d55b88505c7eace3b5476d021af52b996407cae3
 ARG LLVM_VERSION=24
 ARG GDB_VERSION=17.2
 ARG USERNAME=dev
@@ -99,7 +99,12 @@ RUN set -eux; \
     patch llvm.sh < /tmp/patches/llvm.sh.patch; \
     chmod +x llvm.sh; \
     ./llvm.sh $LLVM_VERSION all; \
-    rm llvm.sh
+    rm llvm.sh \
+    # Create direct symlinks into /usr/bin/ for all tools in the LLVM version bin folder
+    for bin in /usr/lib/llvm-${LLVM_VERSION}/bin/*; do \
+        [ -x "$bin" ] || continue; \
+        ln -sf "$bin" "/usr/bin/$(basename "$bin")"; \
+    done
 
 USER $USERNAME
 
