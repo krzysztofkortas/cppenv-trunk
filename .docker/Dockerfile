@@ -99,7 +99,7 @@ RUN set -eux; \
     patch llvm.sh < /tmp/patches/llvm.sh.patch; \
     chmod +x llvm.sh; \
     ./llvm.sh $LLVM_VERSION all; \
-    rm llvm.sh \
+    rm llvm.sh; \
     # Create direct symlinks into /usr/bin/ for all tools in the LLVM version bin folder
     for bin in /usr/lib/llvm-${LLVM_VERSION}/bin/*; do \
         [ -x "$bin" ] || continue; \
